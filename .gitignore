@@ -1,6 +1,7 @@
 checkpoints/
 workdir/
 wandb/
+build/
 logs/
 log/
 runs/
