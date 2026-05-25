@@ -1,7 +1,7 @@
 """DataLoader and configuration for TabICL-based priors."""
 
 import torch
-from tabicl.prior.dataset import PriorDataset as TabICLPriorDataset
+from tabicl.prior import PriorDataset as TabICLPriorDataset
 from torch.utils.data import DataLoader
 
 
