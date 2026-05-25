@@ -9,8 +9,15 @@ from torch.nn.modules.transformer import LayerNorm, Linear, MultiheadAttention
 
 
 class NanoTabPFNModel(nn.Module):
+
     def __init__(
-        self, embedding_size: int, num_attention_heads: int, mlp_hidden_size: int, num_layers: int, num_outputs: int
+        self,
+        embedding_size: int,
+        num_attention_heads: int,
+        mlp_hidden_size: int,
+        num_layers: int,
+        num_outputs: int,
+        is_classification: bool,
     ):
         """Initializes the feature/target encoder, transformer blocks and decoder"""
         super().__init__()
@@ -20,7 +27,9 @@ class NanoTabPFNModel(nn.Module):
         self.num_layers = num_layers
         self.num_outputs = num_outputs
         self.feature_encoder = FeatureEncoder(embedding_size)
-        self.target_encoder = TargetEncoder(embedding_size, num_outputs)
+        self.target_encoder = TargetEncoder(
+            embedding_size, is_classification, num_outputs
+        )
         self.transformer_blocks = nn.ModuleList()
         for _ in range(num_layers):
             self.transformer_blocks.append(
@@ -121,10 +130,15 @@ class FeatureEncoder(nn.Module):
 
 class TargetEncoder(nn.Module):
 
-    def __init__(self, embedding_size: int, num_outputs: int):
+    def __init__(
+        self, embedding_size: int, is_classification: bool, num_outputs: int = None
+    ):
         """Creates the linear layer that we will use to embed our targets."""
         super().__init__()
-        self.linear_layer = nn.Linear(1, embedding_size)
+        self.linear_layer = nn.Linear(
+            1 if not is_classification else num_outputs, embedding_size
+        )
+        self.is_classification = is_classification
         self.num_outputs = num_outputs
 
     def forward(self, y_train: torch.Tensor, num_rows: int) -> torch.Tensor:
@@ -138,8 +152,7 @@ class TargetEncoder(nn.Module):
             (torch.Tensor) a tensor of shape (batch_size, num_rows, 1, embedding_size), representing
                            the embeddings of the targets
         """
-        # if num_outputs == we assume that the target is regression and we pad with the mean, otherwise we assume it is classification and do one-hot encoding and pad with zeros
-        if self.num_outputs == 1:
+        if not self.is_classification:
             mean = torch.mean(y_train, axis=1, keepdim=True)
             padding = mean.repeat(1, num_rows - y_train.shape[1], 1)
             y = torch.cat([y_train, padding], dim=1)
@@ -152,8 +165,9 @@ class TargetEncoder(nn.Module):
                 device=y_train.device,
             )
             y = torch.cat([y_train_one_hot, padding], dim=1)
-        y = y.unsqueeze(-1)
-        return self.linear_layer(y)
+        embeddings = self.linear_layer(y)
+        embeddings = embeddings.unsqueeze(2)
+        return embeddings
 
 
 class TransformerEncoderLayer(nn.Module):
