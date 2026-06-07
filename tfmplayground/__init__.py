@@ -1,3 +1,11 @@
-from tfmplayground.interface import NanoTabPFNClassifier, NanoTabPFNRegressor
+from tfmplayground.interface import (
+    NanoTabPFNClassifier,
+    NanoTabPFNRegressor,
+    ExtendedFullSupportBarDistribution,
+)
 
-__all__ = ["NanoTabPFNClassifier", "NanoTabPFNRegressor"]
+__all__ = [
+    "NanoTabPFNClassifier",
+    "NanoTabPFNRegressor",
+    "ExtendedFullSupportBarDistribution",
+]
